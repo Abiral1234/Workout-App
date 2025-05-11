@@ -36,10 +36,16 @@ const connectDB = async () => {
         if (!process.env.MONGO_URI) {
             throw new Error('MONGO_URI is not defined in environment variables')
         }
-        
-        await mongoose.connect(process.env.MONGO_URI)
+
+        await mongoose.connect(process.env.MONGO_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+        })
+
         console.log('MongoDB connected successfully')
-        
+
         // Only start the server if we're not in a Vercel environment
         if (process.env.NODE_ENV !== 'production') {
             const port = process.env.PORT || 4000
@@ -49,10 +55,14 @@ const connectDB = async () => {
         }
     } catch (error) {
         console.error('Database connection error:', error)
-        process.exit(1)
+        // Don't exit the process in serverless environment
+        if (process.env.NODE_ENV !== 'production') {
+            process.exit(1)
+        }
     }
 }
 
+// Initialize database connection
 connectDB()
 
 // Export the Express API
