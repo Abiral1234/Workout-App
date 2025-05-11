@@ -7,28 +7,53 @@ const workoutRoutes = require('./routes/workout.js')
 //express app
 const app = express()
 
+// Middleware
 app.use(express.json())
 
-app.use((req,res,next)=>{
-    console.log(req.path,req.method)
+// Logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
     next()
 })
 
-//connect to db
-mongoose.connect(process.env.MONGO_URI)
-    .then(()=>{
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error:', err)
+    res.status(500).json({ error: 'Internal Server Error' })
+})
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok' })
+})
+
+// Routes
+app.use("/api/workouts", workoutRoutes)
+
+// Database connection
+const connectDB = async () => {
+    try {
+        if (!process.env.MONGO_URI) {
+            throw new Error('MONGO_URI is not defined in environment variables')
+        }
+        
+        await mongoose.connect(process.env.MONGO_URI)
+        console.log('MongoDB connected successfully')
+        
         // Only start the server if we're not in a Vercel environment
         if (process.env.NODE_ENV !== 'production') {
-            app.listen(process.env.PORT || 4000, () => {
-                console.log("Connected to db and Listening on port", process.env.PORT || 4000)
+            const port = process.env.PORT || 4000
+            app.listen(port, () => {
+                console.log(`Server running on port ${port}`)
             })
         }
-    })
-    .catch((error)=>{
-        console.log(error)
-    })
+    } catch (error) {
+        console.error('Database connection error:', error)
+        process.exit(1)
+    }
+}
 
-app.use("/api/workouts", workoutRoutes)
+connectDB()
 
 // Export the Express API
 module.exports = app
