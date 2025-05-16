@@ -16,12 +16,6 @@ app.use((req, res, next) => {
     next()
 })
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error('Error:', err)
-    res.status(500).json({ error: 'Internal Server Error' })
-})
-
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' })
@@ -29,6 +23,12 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use("/api/workouts", workoutRoutes)
+
+// Error handling middleware - must be after routes
+app.use((err, req, res, next) => {
+    console.error('Error:', err)
+    res.status(500).json({ error: 'Internal Server Error' })
+})
 
 // Database connection
 const connectDB = async () => {
@@ -45,20 +45,8 @@ const connectDB = async () => {
         })
 
         console.log('MongoDB connected successfully')
-
-        // Only start the server if we're not in a Vercel environment
-        if (process.env.NODE_ENV !== 'production') {
-            const port = process.env.PORT || 4000
-            app.listen(port, () => {
-                console.log(`Server running on port ${port}`)
-            })
-        }
     } catch (error) {
         console.error('Database connection error:', error)
-        // Don't exit the process in serverless environment
-        if (process.env.NODE_ENV !== 'production') {
-            process.exit(1)
-        }
     }
 }
 
